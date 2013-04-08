@@ -5,11 +5,10 @@ from nose.plugins.attrib import attr
 from spider.spider import Spider
 from spider.connections import connection
 from unittest import TestCase
-from config import *
-#from preliminary_day_ahead_scheduling_reserve_summary.config import *
+from preliminary_day_ahead_scheduling_reserve_summary.config import *
 
 
-class TestUnits(TestCase):
+class TestSpiderInstance(TestCase):
   def setUp(self):
 
     ####
@@ -26,7 +25,7 @@ class TestUnits(TestCase):
     current_connection = connection()
     self.spider_instance = Spider(url_format=url_format,
                                   timestamp=sample_date,
-                                  strip_lines=2,
+                                  strip_lines=strip_lines,
                                   insert_string_format=insert_string_format,
                                   current_datetime = current_date,
                                   datetime_step = date_step,
