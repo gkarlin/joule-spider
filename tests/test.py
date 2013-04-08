@@ -2,12 +2,25 @@ import nose
 from nose.plugins.attrib import attr
 #configure django settings to get selenose cases to work... WHY DO I HAVE TO DO THIS?
 #configure the default django settings
-from spider.spider import *
+from spider import *
 from unittest import TestCase
 import datetime
 from dateutil.relativedelta import relativedelta
 from connection import connection
 ####################################
+##DEFINE DEFAULTS
+##
+#define url format
+url_format = 'http://www.pjm.com/pub/account/dasrpjm/%Y%m.csv'
+##
+#define sample_date_data
+sample_date = datetime.datetime(2013,3,1) # datetime on march 1 2013
+#start capture at august 1st 2008
+current_date = datetime.datetime(2008,8,1)
+date_step = relativedelta(months=+1)
+#Define End Key Word
+end_keyword = 'End of Report'
+
 ##EXPECTED DATA
 expected_url_sequence =   ['http://www.pjm.com/pub/account/dasrpjm/200808.csv',
                            'http://www.pjm.com/pub/account/dasrpjm/200809.csv',
@@ -66,27 +79,8 @@ expected_url_sequence =   ['http://www.pjm.com/pub/account/dasrpjm/200808.csv',
                            'http://www.pjm.com/pub/account/dasrpjm/201302.csv',
                            'http://www.pjm.com/pub/account/dasrpjm/201303.csv'
                           ]  
-##
-class TestUnits(TestCase):
-  def setUp(self):
-
-    ####
-    ###
-    ##DEFINE DEFAULTS
-    ##
-    #define url format
-    url_format = 'http://www.pjm.com/pub/account/dasrpjm/%Y%m.csv'
-    ##
-    #define sample_date_data
-    sample_date = datetime.datetime(2013,3,1) # datetime on march 1 2013
-    #start capture at august 1st 2008
-    current_date = datetime.datetime(2008,8,1)
-    date_step = relativedelta(months=+1)
-    #end capture one month from today
-    end_date = datetime.datetime.now() - date_step
-    ##
-    #define expected field names
-    expected_fieldnames = ['EPT Hour Ending', 
+#define expected field names
+expected_fieldnames = ['EPT Hour Ending', 
                            'GMT Hour Ending', 
                            'DASRMCP ($/MWh)', 
                            'Total PJM RT Load (MWh)', 
@@ -94,8 +88,8 @@ class TestUnits(TestCase):
                            'Total PJM DASR Credits ($)', 
                            'Total PJM Adjusted DASR Obligation (MWh)'
                            ]
-    #define insert string format
-    insert_string_format = ''' INSERT INTO prices    (   
+
+insert_string_format = ''' INSERT INTO prices    (   
                                                          ept_hour_ending,
                                                          gmt_hour_ending,
                                                          dasrmcp_usd_per_mwh,
@@ -114,8 +108,55 @@ class TestUnits(TestCase):
                                                          '%(Total PJM Adjusted DASR Obligation (MWh))s'
                                                        );
                            ''' 
-    #Define End Key Word
-    end_keyword = 'End of Report'
+
+
+test_line_dict =      {'EPT Hour Ending'                               :                                  '03/01/2013 01', 
+                        'Total PJM RT Load (MWh)'                       :                                  '81735.110000' , 
+                        'GMT Hour Ending'                               :                                  '03/01/2013 06', 
+                        'Total PJM DASR Credits ($)'                    :                                            '.00', 
+                        'Total PJM Adjusted DASR Obligation (MWh)'      :                                       '6069.600', 
+                        'Total PJM Cleared DASR MWh'                    :                                       '6069.600', 
+                        'DASRMCP ($/MWh)'                               :                                            '.000'
+                       }   
+
+
+#define expected insert statement
+expected_insert  =   ''' INSERT INTO prices    (   
+                                                         ept_hour_ending,
+                                                         gmt_hour_ending,
+                                                         dasrmcp_usd_per_mwh,
+                                                         total_pjm_rt_load_mwh,
+                                                         total_pjm_cleared_dasr_mwh,
+                                                         total_pjm_dasr_credits_usd,
+                                                         total_pjm_adjusted_dasr_obligation_mwh
+                                                       )
+                                  VALUES               (
+                                                         '03/01/2013 01:00:00',
+                                                         '03/01/2013 06:00:00', 
+                                                         '.000', 
+                                                         '81735.110000', 
+                                                         '6069.600', 
+                                                         '.00', 
+                                                         '6069.600'
+                                                       );
+
+                     '''
+########################################
+
+
+
+class TestUnits(TestCase):
+  def setUp(self):
+
+    ####
+    ###
+
+    #end capture one month from today
+    end_date = datetime.datetime.now() - date_step
+    ##
+
+    #define insert string format
+
     #Create Spider Instance with appropriate inputs
     self.expected_url_sequence = expected_url_sequence
     current_connection = connection()
@@ -165,38 +206,11 @@ class TestUnits(TestCase):
   
   def testGenerateInsert(self):
 
-      test_line_dict = {'EPT Hour Ending'                               :                                  '03/01/2013 01', 
-                        'Total PJM RT Load (MWh)'                       :                                  '81735.110000' , 
-                        'GMT Hour Ending'                               :                                  '03/01/2013 06', 
-                        'Total PJM DASR Credits ($)'                    :                                            '.00', 
-                        'Total PJM Adjusted DASR Obligation (MWh)'      :                                       '6069.600', 
-                        'Total PJM Cleared DASR MWh'                    :                                       '6069.600', 
-                        'DASRMCP ($/MWh)'                               :                                            '.000'
-                       }      
+   
       self.spider_instance.current_line =  test_line_dict
 
       self.spider_instance.generateInsert()
 
-      #define expected insert statement
-      expected_insert  =   ''' INSERT INTO prices    (   
-                                                         ept_hour_ending,
-                                                         gmt_hour_ending,
-                                                         dasrmcp_usd_per_mwh,
-                                                         total_pjm_rt_load_mwh,
-                                                         total_pjm_cleared_dasr_mwh,
-                                                         total_pjm_dasr_credits_usd,
-                                                         total_pjm_adjusted_dasr_obligation_mwh
-                                                       )
-                                  VALUES               (
-                                                         '03/01/2013 01:00:00',
-                                                         '03/01/2013 06:00:00', 
-                                                         '.000', 
-                                                         '81735.110000', 
-                                                         '6069.600', 
-                                                         '.00', 
-                                                         '6069.600'
-                                                       );
-                           '''
       #test assertion
       self.assertEquals(expected_insert,self.spider_instance.insert_string)
       self.spider_instance.connection.rollBack()
